@@ -1,17 +1,14 @@
 #![no_std]
 #![no_main]
-
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test::test_runner)]
+#![test_runner(toy_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-mod vga_buffer;
-mod serial;
-mod test;
-
 use core::panic::PanicInfo;
-use crate::test::{exit_qemu, QemuExitCode};
+#[cfg(not(test))]
+use toy_os::println;
 
+/// 正常panic handler
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -22,15 +19,13 @@ fn panic(info: &PanicInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    serial_println!("[failed]\n");
-    serial_println!("Error: {}\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    loop {}
+    toy_os::test_panic_handler(info)
 }
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    println!("hello world");
+    toy_os::init();
+    x86_64::instructions::interrupts::int3();
 
     #[cfg(test)]
     test_main();
