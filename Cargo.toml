@@ -19,3 +19,7 @@ lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 spin = "0.9.4"
 x86_64 = "0.14.2"
 uart_16550 = "0.2.0"
+
+[[test]]
+name = "stack_overflow"
+harness = false

@@ -10,9 +10,11 @@ use core::panic::PanicInfo;
 pub mod interrupts;
 pub mod vga_buffer;
 pub mod serial;
+pub mod gdt;
 
 pub fn init() {
     interrupts::init_idt();
+    gdt::init();
 }
 
 pub trait Testable {

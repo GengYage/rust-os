@@ -26,10 +26,6 @@ fn panic(info: &PanicInfo) -> ! {
 pub extern "C" fn _start() -> ! {
     toy_os::init();
 
-    unsafe {
-        *(0xdeadbeef as *mut u64) = 42;
-    }
-
     #[cfg(test)]
     test_main();
 
