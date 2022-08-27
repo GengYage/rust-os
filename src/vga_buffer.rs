@@ -162,3 +162,10 @@ macro_rules! println {
     () => {print!("\n")};
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
+
+#[test_case]
+fn test_print_many_characters() {
+    for i in 0..1024 {
+        println!("print test:{}", i);
+    }
+}
