@@ -61,7 +61,9 @@ pub struct Writer {
 impl Writer {
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
+            // 换行符直接调用new_line方法“新开一行”
             b'\n' => self.new_line(),
+
             byte => {
                 // 计算当前位置
                 let mut row = self.char_numbers / BUFFER_WIDTH;
@@ -88,22 +90,23 @@ impl Writer {
                     color_code,
                 });
 
-                // 位置+1
+                // 字符数+1
                 self.char_numbers += 1;
             }
         }
     }
 
     fn new_line(&mut self) {
-        // 先防止整数溢出
+        // 先防止整数溢出 字符数到达最大值-一页的范围内时，就对一页字符数取模，防止整数溢出
         if self.char_numbers >= (usize::MAX - BUFFER_WIDTH * BUFFER_HEIGHT) {
             // 与一页字符数取模
             self.char_numbers = self.char_numbers % (BUFFER_WIDTH * BUFFER_HEIGHT);
         }
 
+        // 换行 字符数 + 80 减去本行的字符数(self.char_numbers % BUFFER_WIDTH 计算出新行有多少个字符)
         self.char_numbers = self.char_numbers + BUFFER_WIDTH - self.char_numbers % BUFFER_WIDTH;
 
-        // 若到达最大高度,所有字符串前移一行
+        // 若到达最大高度,所有字符上移一行,并清空最后一行
         if self.char_numbers / BUFFER_WIDTH >= BUFFER_HEIGHT - 1 {
             for row in 1..BUFFER_HEIGHT {
                 for col in 0..BUFFER_WIDTH {
@@ -131,10 +134,13 @@ impl Writer {
     }
 
     fn clear_row(&mut self, row: usize) {
+        // 定于空白字符
         let blank = ScreenChar {
             ascii_character: b' ',
             color_code: self.color_code,
         };
+
+        // 将最后一行都设置为空白字符
         for col in 0..BUFFER_WIDTH {
             self.buffer.chars[row][col].write(blank);
         }
