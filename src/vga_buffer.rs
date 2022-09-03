@@ -69,7 +69,16 @@ impl Writer {
 
                 // 行数溢出,置为最后一行
                 if row >= (BUFFER_HEIGHT - 1) {
-                    row = BUFFER_HEIGHT - 1;
+                    // 最后一行一行的最后一个字符,换行
+                    if col >= BUFFER_WIDTH - 1 {
+                        self.new_line();
+                        // 由于换行将最后一行上移,因此要打印到倒数第二行
+                        row = BUFFER_HEIGHT - 2;
+                        // 抵消换行时将char_numbers置为下一行行首
+                        self.char_numbers -= 1;
+                    } else {
+                        row = BUFFER_HEIGHT - 1;
+                    }
                 }
 
                 // 写入字符串
@@ -86,8 +95,16 @@ impl Writer {
     }
 
     fn new_line(&mut self) {
+        // 先防止整数溢出
+        if self.char_numbers >= (usize::MAX - BUFFER_WIDTH * BUFFER_HEIGHT) {
+            // 与一页字符数取模
+            self.char_numbers = self.char_numbers % (BUFFER_WIDTH * BUFFER_HEIGHT);
+        }
+
+        self.char_numbers = self.char_numbers + BUFFER_WIDTH - self.char_numbers % BUFFER_WIDTH;
+
         // 若到达最大高度,所有字符串前移一行
-        if self.char_numbers / BUFFER_WIDTH >= BUFFER_HEIGHT {
+        if self.char_numbers / BUFFER_WIDTH >= BUFFER_HEIGHT - 1 {
             for row in 1..BUFFER_HEIGHT {
                 for col in 0..BUFFER_WIDTH {
                     let character = self.buffer.chars[row][col].read();
@@ -95,17 +112,10 @@ impl Writer {
                     self.buffer.chars[row - 1][col].write(character);
                 }
             }
-        }
-        // 清空最后一行
-        self.clear_row(BUFFER_HEIGHT - 1);
 
-        // 先防止整数溢出
-        if self.char_numbers >= (usize::MAX - BUFFER_WIDTH * BUFFER_HEIGHT) {
-            // 与一页字符数取模
-            self.char_numbers = self.char_numbers % (BUFFER_WIDTH * BUFFER_HEIGHT);
+            // 清空最后一行
+            self.clear_row(BUFFER_HEIGHT - 1);
         }
-
-        self.char_numbers = (self.char_numbers / BUFFER_WIDTH + 1) * BUFFER_WIDTH;
     }
 
     pub fn write_string(&mut self, s: &str) {
@@ -149,7 +159,12 @@ lazy_static! {
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    WRITER.lock().write_fmt(args).unwrap();
+    use x86_64::instructions::interrupts;
+
+    // 在闭包执行时禁用中断
+    interrupts::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }
 
 #[macro_export]

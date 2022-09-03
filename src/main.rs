@@ -29,5 +29,10 @@ pub extern "C" fn _start() -> ! {
     #[cfg(test)]
     test_main();
 
+    #[cfg(not(test))]
+    for i in 0..100 {
+        println!("{}", i);
+    }
+
     loop {}
 }
