@@ -1,7 +1,8 @@
-use crate::{print, println};
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+
+use crate::{print, println};
 use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 
 pub const PIC_1_OFFSET: u8 = 32;
@@ -54,30 +55,31 @@ pub fn init_idt() {
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame)
 {
+    use spin::{Mutex, MutexGuard};
     use x86_64::instructions::port::Port;
+    use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 
-    let mut port = Port::new(0x60);
-    let scancode: u8 = unsafe {
-        port.read()
-    };
-
-    let key = match scancode {
-        0x02 => Some('1'),
-        0x03 => Some('2'),
-        0x04 => Some('3'),
-        0x05 => Some('4'),
-        0x06 => Some('5'),
-        0x07 => Some('6'),
-        0x08 => Some('7'),
-        0x09 => Some('8'),
-        0x0a => Some('9'),
-        0x0b => Some('0'),
-        _ => None,
-    };
-
-    if let Some(key) = key {
-        print!("{}", key);
+    lazy_static! {
+        static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =
+            Mutex::new(Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::Ignore));
     }
+
+    let mut keybord: MutexGuard<Keyboard<layouts::Us104Key, ScancodeSet1>> = KEYBOARD.lock();
+    let mut port = Port::new(0x60);
+
+    let scancode: u8 = unsafe { port.read() };
+    // 解构
+    if let Ok(Some(key_event)) = keybord.add_byte(scancode) {
+        // 解构
+        if let Some(key) = keybord.process_keyevent(key_event) {
+            // 模式匹配
+            match key {
+                DecodedKey::Unicode(character) => print!("{}", character),
+                DecodedKey::RawKey(key) => print!("{:?}", key),
+            }
+        }
+    }
+
 
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
