@@ -13,7 +13,7 @@ use toy_os::println;
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    toy_os::hlt_loop();
 }
 
 #[cfg(test)]
@@ -34,5 +34,5 @@ pub extern "C" fn _start() -> ! {
         println!("{}", i);
     }
 
-    loop {}
+   toy_os::hlt_loop();
 }
