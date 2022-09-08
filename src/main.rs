@@ -30,9 +30,9 @@ pub extern "C" fn _start() -> ! {
     test_main();
 
     #[cfg(not(test))]
-    for i in 0..100 {
-        println!("{}", i);
-    }
+    use x86_64::registers::control::Cr3;
+    let (level_4_page_table, _) = Cr3::read();
+    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
 
-   toy_os::hlt_loop();
+    toy_os::hlt_loop();
 }
